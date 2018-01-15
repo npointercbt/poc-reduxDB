@@ -1,0 +1,44 @@
+service: poc-reduxDB
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
+resources:
+  Resources:
+    ActionsTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: uuid
+            AttributeType: S
+        KeySchema:
+          - AttributeName: uuid
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+
+functions:
+  query:
+    handler: state.query
+    events: 
+      - http: 
+          path: query
+          method: get
+  injest:
+    handler: state.injest
+    events: 
+      - http: 
+          path: injest
+          method: post
